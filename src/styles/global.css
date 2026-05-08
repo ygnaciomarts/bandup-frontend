@@ -1,0 +1,68 @@
+:root {
+  --primario: #282d35;
+  --primarioClaro: #3a4150;
+  --secundario: #dc454d;
+  --gris: #e5e5e5;
+  --blanco: #ffffff;
+  --fondo: #ffffff;
+  --swiper-theme-color: #dc454d;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-size: 16px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 500;
+  background: var(--fondo);
+  color: var(--primario);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul {
+  list-style: none;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+.loading {
+  text-align: center;
+  padding: 4rem;
+  font-size: 1.2rem;
+  color: var(--gris);
+}
+
+/* Ensure containers center on small screens */
+.MuiContainer-root {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+@media (max-width: 600px) {
+  .MuiContainer-root {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}

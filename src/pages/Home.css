@@ -1,0 +1,41 @@
+.home {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.hero {
+  padding: 0;
+}
+
+@keyframes marquee-up {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+
+@keyframes marquee-down {
+  0% { transform: translateY(-50%); }
+  100% { transform: translateY(0); }
+}
+
+.slider-dots .swiper-pagination-bullet {
+  background: #282d35 !important;
+  opacity: 0.25;
+  width: 6px;
+  height: 6px;
+  margin: 0 3px !important;
+  display: inline-block;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.slider-dots .swiper-pagination-bullet-active {
+  opacity: 1 !important;
+  background: #282d35 !important;
+  transform: scale(1.3);
+}
+
+/* Swiper nav arrows hidden (using custom MUI buttons) */
+.swiper-button-next,
+.swiper-button-prev {
+  display: none !important;
+}
