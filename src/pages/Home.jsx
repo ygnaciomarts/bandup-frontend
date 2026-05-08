@@ -18,11 +18,10 @@ import ProductCard from '../components/ProductCard'
 import './Home.css'
 
 const SLIDER_IMAGES = [
-  '/img/slider/Slider-PP_HolyFvck.png',
-  '/img/slider/Slider-PP_BetterMistakes.png',
-  '/img/slider/Slider-PP_Positions.png',
-  '/img/slider/Slider-PP_Reinaissance.png',
-  '/img/slider/Slider-PP_Special.png',
+  '/img/slider/Slider-INTD.png',
+  '/img/slider/Slider-KenisOs-KDEK.png',
+  '/img/slider/Slider-WGIA.png',
+  '/img/slider/Slider-Sexistential.png'
 ]
 
 export default function Home() {
@@ -40,6 +39,9 @@ export default function Home() {
   const products = productsData?.products || []
   const swiperRef = useRef(null)
 
+  console.log('Featured products:', featured)
+  console.log('All products:', products)
+
   return (
     <main>
       <Container maxWidth="lg" sx={{ pt: 3 }}>
@@ -49,65 +51,81 @@ export default function Home() {
               modules={[Autoplay, Pagination]}
               autoplay={{ delay: 8000, disableOnInteraction: false, pauseOnMouseEnter: true }}
               pagination={{ clickable: true, el: '.slider-dots' }}
-            loop
-            style={{ width: '100%', height: '100%' }}
-            onSwiper={(swiper) => { swiperRef.current = swiper }}
-            onMouseEnter={() => swiperRef.current?.autoplay?.stop()}
-            onMouseLeave={() => swiperRef.current?.autoplay?.start()}
-          >
-            {/* Promo slide - Hot Now vertical marquee */}
-            <SwiperSlide>
-              <Box
-                component={Link}
-                to="/search?sort=top"
-                sx={{
-                  background: 'linear-gradient(135deg, #0f0f0f 0%, #1c1c2e 50%, #0f0f0f 100%)',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  textDecoration: 'none',
-                  display: 'flex',
-                  height: '100%',
-                }}
-              >
-                {/* Text left */}
-                <Box sx={{ position: 'absolute', bottom: { xs: 25, md: 40 }, left: { xs: 25, md: 40 }, zIndex: 2 }}>
-                  <Typography sx={{ color: '#fff', fontWeight: 800, textShadow: '0 2px 10px rgba(0,0,0,0.8)', lineHeight: 1.1, fontSize: { xs: '2.2rem', sm: '2.6rem', md: '3.2rem' }, letterSpacing: '-0.04em' }}>
-                    Hot Now
-                  </Typography>
-                  <Typography sx={{ color: 'rgba(255,255,255,0.8)', mt: 0.5, textShadow: '0 1px 5px rgba(0,0,0,0.8)', fontSize: { xs: '0.85rem', md: '1.05rem' } }}>
-                    Lo más vendido esta semana
-                  </Typography>
-                </Box>
-                {/* Vertical marquee columns on the right */}
-                <Box sx={{ ml: 'auto', display: 'flex', gap: 1, pr: 2, height: '100%', overflow: 'hidden' }}>
-                  {[
-                    { items: products.length > 0 ? [products[0], products[1 % products.length], products[2 % products.length], products[3 % products.length], products[4 % products.length]] : [], dir: 'up', speed: 28 },
-                    { items: products.length > 0 ? [products[3 % products.length], products[5 % products.length], products[7 % products.length], products[9 % products.length], products[11 % products.length]] : [], dir: 'down', speed: 55 },
-                    { items: products.length > 0 ? [products[2 % products.length], products[4 % products.length], products[6 % products.length], products[8 % products.length], products[10 % products.length]] : [], dir: 'up', speed: 28 },
-                    { items: products.length > 0 ? [products[1 % products.length], products[6 % products.length], products[11 % products.length], products[13 % products.length], products[0]] : [], dir: 'down', speed: 55 },
-                    { items: products.length > 0 ? [products[5 % products.length], products[8 % products.length], products[12 % products.length], products[14 % products.length], products[3 % products.length]] : [], dir: 'up', speed: 35 },
-                  ].map((col, colIdx) => (
-                    <Box key={`col-${colIdx}`} sx={{ overflow: 'hidden', height: '100%', position: 'relative' }}>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, animation: `marquee-${col.dir} ${col.speed}s linear infinite`, willChange: 'transform' }}>
-                        {[...col.items, ...col.items].map((p, i) => p && (
-                          <Box key={`c${colIdx}-${i}`} component="img" src={p.cover ? (p.cover.startsWith('data:') ? p.cover : `data:image/jpeg;base64,${p.cover}`) : p.coverUrl} sx={{ width: { xs: 90, sm: 110, md: 140 }, height: { xs: 90, sm: 110, md: 140 }, borderRadius: 2, flexShrink: 0, objectFit: 'cover' }} />
-                        ))}
+              loop
+              style={{ width: '100%', height: '100%' }}
+              onSwiper={(swiper) => { swiperRef.current = swiper }}
+              onMouseEnter={() => swiperRef.current?.autoplay?.stop()}
+              onMouseLeave={() => swiperRef.current?.autoplay?.start()}
+            >
+              {/* Promo slide - Hot Now vertical marquee */}
+              <SwiperSlide>
+                <Box
+                  component={Link}
+                  to="/search?sort=top"
+                  sx={{
+                    background: 'linear-gradient(135deg, #0f0f0f 0%, #1c1c2e 50%, #0f0f0f 100%)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    textDecoration: 'none',
+                    display: 'flex',
+                    height: '100%',
+                  }}
+                >
+                  {/* Text left */}
+                  <Box sx={{ position: 'absolute', bottom: { xs: 25, md: 40 }, left: { xs: 25, md: 40 }, zIndex: 2 }}>
+                    <Typography sx={{ color: '#fff', fontWeight: 800, textShadow: '0 2px 10px rgba(0,0,0,0.8)', lineHeight: 1.1, fontSize: { xs: '2.2rem', sm: '2.6rem', md: '3.2rem' }, letterSpacing: '-0.04em' }}>
+                      Hot Now
+                    </Typography>
+                    <Typography sx={{ color: 'rgba(255,255,255,0.8)', mt: 0.5, textShadow: '0 1px 5px rgba(0,0,0,0.8)', fontSize: { xs: '0.85rem', md: '1.05rem' } }}>
+                      Lo más vendido esta semana
+                    </Typography>
+                  </Box>
+                  {/* Vertical marquee columns on the right */}
+                  <Box sx={{ ml: 'auto', display: 'flex', gap: 1, pr: 2, height: '100%', overflow: 'hidden' }}>
+                    {[
+                      { items: products.length > 0 ? [products[0], products[1 % products.length], products[2 % products.length], products[3 % products.length], products[4 % products.length]] : [], dir: 'up', speed: 28 },
+                      { items: products.length > 0 ? [products[3 % products.length], products[5 % products.length], products[7 % products.length], products[9 % products.length], products[11 % products.length]] : [], dir: 'down', speed: 55 },
+                      { items: products.length > 0 ? [products[2 % products.length], products[4 % products.length], products[6 % products.length], products[8 % products.length], products[10 % products.length]] : [], dir: 'up', speed: 28 },
+                      { items: products.length > 0 ? [products[1 % products.length], products[6 % products.length], products[11 % products.length], products[13 % products.length], products[0]] : [], dir: 'down', speed: 55 },
+                      { items: products.length > 0 ? [products[5 % products.length], products[8 % products.length], products[12 % products.length], products[14 % products.length], products[3 % products.length]] : [], dir: 'up', speed: 35 },
+                    ].map((col, colIdx) => (
+                      <Box key={`col-${colIdx}`} sx={{ overflow: 'hidden', height: '100%', position: 'relative' }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, animation: `marquee-${col.dir} ${col.speed}s linear infinite`, willChange: 'transform' }}>
+                          {[...col.items, ...col.items].map((p, i) => p && (
+                            <Box
+                              key={`c${colIdx}-${i}`}
+                              component="img"
+                              src={
+                                p.cover_image ||
+                                p.coverUrl ||
+                                p.imageUrl ||
+                                'https://placehold.co/300x300/ccc/333?text=No+Image'
+                              }
+                              sx={{
+                                width: { xs: 90, sm: 110, md: 140 },
+                                height: { xs: 90, sm: 110, md: 140 },
+                                borderRadius: 2,
+                                flexShrink: 0,
+                                objectFit: 'cover'
+                              }}
+                            />
+                          ))}
+                        </Box>
                       </Box>
-                    </Box>
-                  ))}
+                    ))}
+                  </Box>
+                  {/* Gradient overlays */}
+                  <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(15,15,15,0.95) 0%, rgba(15,15,15,0.5) 45%, transparent 100%)', pointerEvents: 'none' }} />
+                  <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(15,15,15,0.6) 0%, transparent 30%)', pointerEvents: 'none' }} />
                 </Box>
-                {/* Gradient overlays */}
-                <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(15,15,15,0.95) 0%, rgba(15,15,15,0.5) 45%, transparent 100%)', pointerEvents: 'none' }} />
-                <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(15,15,15,0.6) 0%, transparent 30%)', pointerEvents: 'none' }} />
-              </Box>
-            </SwiperSlide>
-
-            {SLIDER_IMAGES.map((img, i) => (
-              <SwiperSlide key={i}>
-                <img src={img} alt={`Slider ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
               </SwiperSlide>
-            ))}
-          </Swiper>
+
+              {SLIDER_IMAGES.map((img, i) => (
+                <SwiperSlide key={i}>
+                  <img src={img} alt={`Slider ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                </SwiperSlide>
+              ))}
+            </Swiper>
           </Box>
           {/* Custom nav buttons */}
           <IconButton
@@ -149,18 +167,18 @@ export default function Home() {
           <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 3 }}>
             {loadingFeatured
               ? Array.from({ length: 4 }).map((_, i) => (
-                  <Box key={i} sx={{ width: { xs: 'calc(50% - 12px)', sm: 'calc(33.33% - 16px)', md: 'calc(25% - 18px)' } }}>
-                    <Skeleton variant="rounded" sx={{ aspectRatio: '1', width: '100%', borderRadius: 2 }} />
-                    <Skeleton sx={{ mt: 1.5, width: '50%', height: 12 }} />
-                    <Skeleton sx={{ mt: 0.8, width: '80%', height: 16 }} />
-                    <Skeleton sx={{ mt: 0.8, width: '35%', height: 16 }} />
-                  </Box>
-                ))
+                <Box key={i} sx={{ width: { xs: 'calc(50% - 12px)', sm: 'calc(33.33% - 16px)', md: 'calc(25% - 18px)' } }}>
+                  <Skeleton height={250} variant="rounded" sx={{ aspectRatio: '1', width: '100%', borderRadius: 2 }} />
+                  <Skeleton sx={{ mt: 1.5, width: '50%', height: 12 }} />
+                  <Skeleton sx={{ mt: 0.8, width: '80%', height: 16 }} />
+                  <Skeleton sx={{ mt: 0.8, width: '35%', height: 16 }} />
+                </Box>
+              ))
               : featured.map(product => (
-                  <Box key={product.id} sx={{ width: { xs: 'calc(50% - 12px)', sm: 'calc(33.33% - 16px)', md: 'calc(25% - 18px)' } }}>
-                    <ProductCard product={product} />
-                  </Box>
-                ))
+                <Box key={product.id} sx={{ width: { xs: 'calc(50% - 12px)', sm: 'calc(33.33% - 16px)', md: 'calc(25% - 18px)' } }}>
+                  <ProductCard product={product} />
+                </Box>
+              ))
             }
           </Box>
         </Container>
@@ -178,18 +196,18 @@ export default function Home() {
         <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 3 }}>
           {loadingProducts
             ? Array.from({ length: 8 }).map((_, i) => (
-                <Box key={i} sx={{ width: { xs: 'calc(50% - 12px)', sm: 'calc(33.33% - 16px)', md: 'calc(25% - 18px)' } }}>
-                  <Skeleton variant="rounded" sx={{ aspectRatio: '1', width: '100%', borderRadius: 2 }} />
-                  <Skeleton sx={{ mt: 1.5, width: '50%', height: 12 }} />
-                  <Skeleton sx={{ mt: 0.8, width: '80%', height: 16 }} />
-                  <Skeleton sx={{ mt: 0.8, width: '35%', height: 16 }} />
-                </Box>
-              ))
+              <Box key={i} sx={{ width: { xs: 'calc(50% - 12px)', sm: 'calc(33.33% - 16px)', md: 'calc(25% - 18px)' } }}>
+                <Skeleton height={250}  variant="rounded" sx={{ aspectRatio: '1', width: '100%', borderRadius: 2 }} />
+                <Skeleton sx={{ mt: 1.5, width: '50%', height: 12 }} />
+                <Skeleton sx={{ mt: 0.8, width: '80%', height: 16 }} />
+                <Skeleton sx={{ mt: 0.8, width: '35%', height: 16 }} />
+              </Box>
+            ))
             : products.map(product => (
-                <Box key={product.id} sx={{ width: { xs: 'calc(50% - 12px)', sm: 'calc(33.33% - 16px)', md: 'calc(25% - 18px)' } }}>
-                  <ProductCard product={product} />
-                </Box>
-              ))
+              <Box key={product.id} sx={{ width: { xs: 'calc(50% - 12px)', sm: 'calc(33.33% - 16px)', md: 'calc(25% - 18px)' } }}>
+                <ProductCard product={product} />
+              </Box>
+            ))
           }
         </Box>
       </Container>
