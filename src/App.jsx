@@ -22,6 +22,7 @@ import Contact from './pages/Contact'
 import Wishlist from './pages/Wishlist'
 import NotFound from './pages/NotFound'
 import StyleGuide from './pages/StyleGuide'
+import ResetPassword from './pages/ResetPassword'
 
 export default function App() {
   return (
@@ -46,6 +47,7 @@ export default function App() {
           <Route path="/wishlist" element={<PrivateRoute><Wishlist /></PrivateRoute>} />
           <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="/styleguide" element={<StyleGuide />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Box>
