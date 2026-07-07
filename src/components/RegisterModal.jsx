@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import {
-  Dialog, DialogContent, TextField, Button, Typography, Alert, Box,
+  Dialog, DialogContent, TextField, Typography, Alert, Box,
   InputAdornment, IconButton, Grid, Stepper, Step, StepLabel
 } from '@mui/material'
 import { Person, Lock, Email, Badge, Close, MusicNote } from '@mui/icons-material'
 import { useAuth } from '../context/AuthContext'
 import { useNotification } from '../context/NotificationContext'
+import { BtnAuth, BtnOutlined } from './ui/Buttons'
 
 const steps = ['Datos personales', 'Cuenta']
 
@@ -112,15 +113,9 @@ export default function RegisterModal() {
                   />
                 </Grid>
               </Grid>
-              <Button
-                onClick={handleNext}
-                variant="contained"
-                size="large"
-                fullWidth
-                sx={{ mt: 1, py: 1.4, borderRadius: 2, fontWeight: 700, background: '#dc454d', '&:hover': { background: '#c03a42' } }}
-              >
+              <BtnAuth onClick={handleNext} sx={{ mt: 1 }}>
                 Siguiente
-              </Button>
+              </BtnAuth>
             </>
           ) : (
             <>
@@ -160,31 +155,28 @@ export default function RegisterModal() {
                 sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, '&.Mui-focused fieldset': { borderColor: '#dc454d' } }, '& .MuiInputLabel-root.Mui-focused': { color: '#dc454d' } }}
               />
               <Box sx={{ display: 'flex', gap: 1.5, mt: 1 }}>
-                <Button
+                <BtnOutlined
                   onClick={() => setActiveStep(0)}
-                  variant="outlined"
                   size="large"
-                  sx={{ flex: 1, py: 1.4, borderRadius: 2, fontWeight: 700, borderColor: '#ddd', color: '#555', '&:hover': { borderColor: '#bbb' } }}
+                  sx={{ flex: 1, py: 1.4, borderRadius: '6px' }}
                 >
                   Atrás
-                </Button>
-                <Button
+                </BtnOutlined>
+                <BtnAuth
                   type="submit"
-                  variant="contained"
-                  size="large"
                   disabled={isSubmitting}
-                  sx={{ flex: 2, py: 1.4, borderRadius: 2, fontWeight: 700, background: '#dc454d', '&:hover': { background: '#c03a42' } }}
+                  sx={{ flex: 2 }}
                 >
                   {isSubmitting ? 'Creando...' : 'Crear cuenta'}
-                </Button>
+                </BtnAuth>
               </Box>
             </>
           )}
         </Box>
 
-        <Typography sx={{ color: '#666', textAlign: 'center', mt: 3, fontSize: '0.875rem' }}>
+        <Typography sx={{ color: 'text.secondary', textAlign: 'center', mt: 3, fontSize: '0.875rem' }}>
           ¿Ya tienes cuenta?{' '}
-          <Box component="span" onClick={switchToLogin} sx={{ color: '#dc454d', fontWeight: 600, cursor: 'pointer' }}>
+          <Box component="span" onClick={switchToLogin} sx={{ color: 'secondary.main', fontWeight: 600, cursor: 'pointer' }}>
             Inicia sesión
           </Box>
         </Typography>

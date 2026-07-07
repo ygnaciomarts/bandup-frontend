@@ -14,36 +14,39 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
 import 'swiper/css'
 import 'swiper/css/pagination'
 import { api } from '../services/api'
+import { useSiteConfig } from '../context/SiteConfigContext'
 import ProductCard from '../components/ProductCard'
+import SEO from '../components/SEO'
 import './Home.css'
 
-const SLIDER_IMAGES = [
-  '/img/slider/Slider-INTD.png',
-  '/img/slider/Slider-KenisOs-KDEK.png',
-  '/img/slider/Slider-WGIA.png',
-  '/img/slider/Slider-Sexistential.png'
-]
-
 export default function Home() {
-  const { data: featuredData, isLoading: loadingFeatured } = useQuery({
-    queryKey: ['products', 'featured'],
-    queryFn: () => api.getFeatured(),
+  const config = useSiteConfig()
+  const { data: sectionsData, isLoading: loadingSections } = useQuery({
+    queryKey: ['products', 'sections'],
+    queryFn: () => api.getHomeSections(),
+    staleTime: 0,
   })
 
   const { data: productsData, isLoading: loadingProducts } = useQuery({
     queryKey: ['products', 'all'],
     queryFn: () => api.getProducts({ limit: 12 }),
+    staleTime: 0,
   })
 
-  const featured = featuredData?.products || []
+  const { data: sliders = [] } = useQuery({
+    queryKey: ['products', 'sliders'],
+    queryFn: () => api.getHomeSliders(),
+    staleTime: 0,
+  })
+
+  const rawSections = sectionsData?.sections || []
+  const sections = rawSections
   const products = productsData?.products || []
   const swiperRef = useRef(null)
 
-  console.log('Featured products:', featured)
-  console.log('All products:', products)
-
   return (
     <main>
+      <SEO title="Inicio" description={config.seo.defaultDescription} />
       <Container maxWidth="lg" sx={{ pt: 3 }}>
         <Box sx={{ position: 'relative' }}>
           <Box sx={{ borderRadius: 4, overflow: 'hidden', boxShadow: '0 8px 30px rgba(0,0,0,0.12)', height: { xs: 240, sm: 290, md: 340 } }}>
@@ -61,7 +64,7 @@ export default function Home() {
               <SwiperSlide>
                 <Box
                   component={Link}
-                  to="/search?sort=top"
+                  to={config.home.promoSlide.link}
                   sx={{
                     background: 'linear-gradient(135deg, #0f0f0f 0%, #1c1c2e 50%, #0f0f0f 100%)',
                     position: 'relative',
@@ -74,10 +77,10 @@ export default function Home() {
                   {/* Text left */}
                   <Box sx={{ position: 'absolute', bottom: { xs: 25, md: 40 }, left: { xs: 25, md: 40 }, zIndex: 2 }}>
                     <Typography sx={{ color: '#fff', fontWeight: 800, textShadow: '0 2px 10px rgba(0,0,0,0.8)', lineHeight: 1.1, fontSize: { xs: '2.2rem', sm: '2.6rem', md: '3.2rem' }, letterSpacing: '-0.04em' }}>
-                      Hot Now
+                      {config.home.promoSlide.title}
                     </Typography>
                     <Typography sx={{ color: 'rgba(255,255,255,0.8)', mt: 0.5, textShadow: '0 1px 5px rgba(0,0,0,0.8)', fontSize: { xs: '0.85rem', md: '1.05rem' } }}>
-                      Lo más vendido esta semana
+                      {config.home.promoSlide.subtitle}
                     </Typography>
                   </Box>
                   {/* Vertical marquee columns on the right */}
@@ -120,9 +123,9 @@ export default function Home() {
                 </Box>
               </SwiperSlide>
 
-              {SLIDER_IMAGES.map((img, i) => (
-                <SwiperSlide key={i}>
-                  <img src={img} alt={`Slider ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+              {sliders.map((slide, i) => (
+                <SwiperSlide key={slide.id || i}>
+                  <img src={slide.image_url} alt={slide.title || `Slider ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 </SwiperSlide>
               ))}
             </Swiper>
@@ -154,19 +157,72 @@ export default function Home() {
         </Box>
       </Container>
 
-      {(loadingFeatured || featured.length > 0) && (
+      {/* Dynamic sections from admin */}
+      {loadingSections ? (
         <Container maxWidth="lg" sx={{ py: 5 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
-            <Typography variant="h5" sx={{ fontWeight: 800 }}>
-              Novedades
-            </Typography>
-            <Button component={Link} to="/search?filter=new" variant="text" size="small" sx={{ fontWeight: 600 }}>
-              Ver todo →
+          {Array.from({ length: 2 }).map((_, i) => (
+            <Box key={i} sx={{ mb: 5 }}>
+              <Skeleton width={180} height={32} sx={{ mb: 3 }} />
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                {Array.from({ length: 4 }).map((_, j) => (
+                  <Box key={j} sx={{ width: { xs: 'calc(50% - 12px)', sm: 'calc(33.33% - 16px)', md: 'calc(25% - 18px)' } }}>
+                    <Skeleton height={250} variant="rounded" sx={{ aspectRatio: '1', width: '100%', borderRadius: 2 }} />
+                    <Skeleton sx={{ mt: 1.5, width: '50%', height: 12 }} />
+                    <Skeleton sx={{ mt: 0.8, width: '80%', height: 16 }} />
+                    <Skeleton sx={{ mt: 0.8, width: '35%', height: 16 }} />
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          ))}
+        </Container>
+      ) : sections.map(section => section.products.length > 0 && (
+        <Container key={section.id} maxWidth="lg" sx={{ py: 5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3.5 }}>
+            <Box>
+              <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>{section.title}</Typography>
+              {section.subtitle && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>{section.subtitle}</Typography>}
+            </Box>
+            {section.link_url && (
+              <Button
+                component={Link}
+                to={section.link_url}
+                variant="outlined"
+                size="small"
+                sx={{ fontWeight: 600, fontSize: '0.72rem', borderRadius: 5, px: 2, textTransform: 'none', borderColor: '#e0e0e0', color: '#555', '&:hover': { borderColor: '#282d35', color: '#282d35', bgcolor: 'transparent' } }}
+              >
+                {section.link_text || 'Ver todo'}
+              </Button>
+            )}
+          </Box>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 3 }}>
+            {section.products.map(product => (
+              <Box key={product.id} sx={{ width: { xs: 'calc(50% - 12px)', sm: 'calc(33.33% - 16px)', md: 'calc(25% - 18px)' } }}>
+                <ProductCard product={product} linkState={{ from: '/', fromLabel: section.title || 'Inicio' }} />
+              </Box>
+            ))}
+          </Box>
+        </Container>
+      ))}
+
+      {/* Fallback: show all products if no sections exist */}
+      {!loadingSections && sections.length === 0 && (
+        <Container maxWidth="lg" sx={{ py: 5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3.5 }}>
+            <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.02em' }}>Catálogo</Typography>
+            <Button
+              component={Link}
+              to="/search"
+              variant="outlined"
+              size="small"
+              sx={{ fontWeight: 600, fontSize: '0.72rem', borderRadius: 5, px: 2, textTransform: 'none', borderColor: '#e0e0e0', color: '#555', '&:hover': { borderColor: '#282d35', color: '#282d35', bgcolor: 'transparent' } }}
+            >
+              Ver todo
             </Button>
           </Box>
           <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 3 }}>
-            {loadingFeatured
-              ? Array.from({ length: 4 }).map((_, i) => (
+            {loadingProducts
+              ? Array.from({ length: 8 }).map((_, i) => (
                 <Box key={i} sx={{ width: { xs: 'calc(50% - 12px)', sm: 'calc(33.33% - 16px)', md: 'calc(25% - 18px)' } }}>
                   <Skeleton height={250} variant="rounded" sx={{ aspectRatio: '1', width: '100%', borderRadius: 2 }} />
                   <Skeleton sx={{ mt: 1.5, width: '50%', height: 12 }} />
@@ -174,9 +230,9 @@ export default function Home() {
                   <Skeleton sx={{ mt: 0.8, width: '35%', height: 16 }} />
                 </Box>
               ))
-              : featured.map(product => (
+              : products.map(product => (
                 <Box key={product.id} sx={{ width: { xs: 'calc(50% - 12px)', sm: 'calc(33.33% - 16px)', md: 'calc(25% - 18px)' } }}>
-                  <ProductCard product={product} />
+                  <ProductCard product={product} linkState={{ from: '/', fromLabel: 'Catálogo' }} />
                 </Box>
               ))
             }
@@ -184,158 +240,99 @@ export default function Home() {
         </Container>
       )}
 
-      <Container maxWidth="lg" sx={{ py: 5 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>
-            Top Sellers
-          </Typography>
-          <Button component={Link} to="/search?sort=top" variant="text" size="small" sx={{ fontWeight: 600 }}>
-            Ver todo →
-          </Button>
-        </Box>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 3 }}>
-          {loadingProducts
-            ? Array.from({ length: 8 }).map((_, i) => (
-              <Box key={i} sx={{ width: { xs: 'calc(50% - 12px)', sm: 'calc(33.33% - 16px)', md: 'calc(25% - 18px)' } }}>
-                <Skeleton height={250}  variant="rounded" sx={{ aspectRatio: '1', width: '100%', borderRadius: 2 }} />
-                <Skeleton sx={{ mt: 1.5, width: '50%', height: 12 }} />
-                <Skeleton sx={{ mt: 0.8, width: '80%', height: 16 }} />
-                <Skeleton sx={{ mt: 0.8, width: '35%', height: 16 }} />
-              </Box>
-            ))
-            : products.map(product => (
-              <Box key={product.id} sx={{ width: { xs: 'calc(50% - 12px)', sm: 'calc(33.33% - 16px)', md: 'calc(25% - 18px)' } }}>
-                <ProductCard product={product} />
-              </Box>
-            ))
-          }
-        </Box>
-      </Container>
-
-      {/* Perks Bar */}
-      <Box sx={{ bgcolor: '#fff', py: 5, borderTop: '1px solid #e5e5e5', borderBottom: '1px solid #e5e5e5' }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={3} justifyContent="center">
-            {[
-              { icon: <LocalShippingIcon sx={{ fontSize: 40 }} />, title: 'Envío Gratis', desc: 'En órdenes mayores a $799' },
-              { icon: <VerifiedIcon sx={{ fontSize: 40 }} />, title: '100% Original', desc: 'Producto auténtico garantizado' },
-              { icon: <HeadphonesIcon sx={{ fontSize: 40 }} />, title: 'Soporte 24/7', desc: 'Estamos para ayudarte' },
-              { icon: <CardGiftcardIcon sx={{ fontSize: 40 }} />, title: 'Gift Cards', desc: 'El regalo perfecto' },
-            ].map((perk, i) => (
-              <Grid item xs={6} sm={6} md={3} key={i}>
-                <Box sx={{ textAlign: 'center', px: { xs: 1, md: 2 } }}>
-                  <Box sx={{ color: '#282d35', mb: 1, display: 'flex', justifyContent: 'center' }}>{perk.icon}</Box>
-                  <Typography variant="subtitle1" fontWeight={700}>{perk.title}</Typography>
-                  <Typography variant="body2" color="text.secondary">{perk.desc}</Typography>
-                </Box>
-              </Grid>
-            ))}
-          </Grid>
-        </Container>
-      </Box>
-
       {/* CTA Banner */}
-      <Box sx={{ bgcolor: '#282d35', py: 8, textAlign: 'center' }}>
+      <Box sx={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #282d35 100%)', py: { xs: 6, md: 8 }, textAlign: 'center' }}>
         <Container maxWidth="sm">
-          <Typography variant="h4" sx={{ color: '#fff', fontWeight: 700, mb: 2 }}>
-            ¿Buscas algo especial?
+          <Typography variant="h4" sx={{ color: '#fff', fontWeight: 800, mb: 1.5, letterSpacing: '-0.02em' }}>
+            {config.home.ctaBanner.title}
           </Typography>
-          <Typography sx={{ color: 'rgba(255,255,255,0.7)', mb: 3 }}>
-            Explora nuestro catálogo completo con LPs, CDs y ediciones limitadas de cientos de artistas.
+          <Typography sx={{ color: 'rgba(255,255,255,0.6)', mb: 3.5, fontSize: '0.95rem' }}>
+            {config.home.ctaBanner.description}
           </Typography>
           <Button
             component={Link}
-            to="/search"
+            to={config.home.ctaBanner.buttonLink}
             variant="contained"
             color="secondary"
             size="large"
-            sx={{ px: 5, py: 1.5, fontSize: '1rem' }}
+            sx={{ px: 5, py: 1.5, fontSize: '0.95rem', borderRadius: 2 }}
           >
-            Ver catálogo completo
+            {config.home.ctaBanner.buttonText}
           </Button>
         </Container>
       </Box>
 
       {/* Category Cards */}
       <Container maxWidth="lg" sx={{ py: 6 }}>
-        <Grid container spacing={3} justifyContent="center">
-          <Grid item xs={12} md={6}>
-            <Paper
-              component={Link}
-              to="/search?tipo=LP"
-              sx={{
-                p: { xs: 3, md: 5 },
-                bgcolor: '#1a1a2e',
-                color: '#fff',
-                textDecoration: 'none',
-                display: 'block',
-                borderRadius: 3,
-                textAlign: 'center',
-                transition: 'transform 0.2s',
-                '&:hover': { transform: 'scale(1.02)' }
-              }}
-            >
-              <Typography variant="overline" sx={{ color: '#dc454d' }}>Colección</Typography>
-              <Typography variant="h4" fontWeight={700}>LPs</Typography>
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mt: 1 }}>
-                La experiencia analógica que mereces. Ediciones especiales y clásicos.
-              </Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Paper
-              component={Link}
-              to="/search?tipo=CD"
-              sx={{
-                p: { xs: 3, md: 5 },
-                bgcolor: '#dc454d',
-                color: '#fff',
-                textDecoration: 'none',
-                display: 'block',
-                borderRadius: 3,
-                textAlign: 'center',
-                transition: 'transform 0.2s',
-                '&:hover': { transform: 'scale(1.02)' }
-              }}
-            >
-              <Typography variant="overline" sx={{ color: 'rgba(255,255,255,0.8)' }}>Colección</Typography>
-              <Typography variant="h4" fontWeight={700}>CDs</Typography>
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)', mt: 1 }}>
-                Calidad digital, empaque físico. Tus álbumes favoritos a precio accesible.
-              </Typography>
-            </Paper>
-          </Grid>
+        <Grid container spacing={3} sx={{ justifyContent: 'center' }}>
+          {config.home.categoryCards.map((card, idx) => (
+            <Grid key={idx} size={{ xs: 12, md: 6 }}>
+              <Paper
+                component={Link}
+                to={card.link}
+                sx={{
+                  p: { xs: 4, md: 5 },
+                  bgcolor: card.bgcolor,
+                  color: '#fff',
+                  textDecoration: 'none',
+                  display: 'block',
+                  borderRadius: 3,
+                  position: 'relative',
+                  overflow: 'hidden',
+                  transition: 'transform 0.2s',
+                  '&:hover': { transform: 'scale(1.02)' },
+                  '&:hover .card-arrow': { transform: 'translateX(4px)' },
+                }}
+              >
+                <Box sx={{ position: 'absolute', top: -20, right: -20, width: 180, height: 180, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.04)' }} />
+                <Box sx={{ position: 'absolute', bottom: -40, right: 40, width: 120, height: 120, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.03)' }} />
+                <Typography variant="overline" sx={{ color: card.accentColor, fontWeight: 700, letterSpacing: 1.5 }}>{card.overline}</Typography>
+                <Typography variant="h4" fontWeight={800} sx={{ mt: 0.5 }}>{card.title}</Typography>
+                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mt: 1, maxWidth: 280 }}>
+                  {card.description}
+                </Typography>
+                <Box className="card-arrow" sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 0.5, color: card.accentColor, transition: 'transform 0.2s' }}>
+                  <Typography variant="body2" fontWeight={600}>Explorar</Typography>
+                  <ArrowForwardIcon sx={{ fontSize: 16 }} />
+                </Box>
+              </Paper>
+            </Grid>
+          ))}
         </Grid>
       </Container>
 
       {/* Newsletter */}
-      <Box sx={{ bgcolor: '#fafafa', py: 6, borderTop: '1px solid #f0f0f0' }}>
+      <Box sx={{ bgcolor: '#fafafa', py: 6 }}>
         <Container maxWidth="sm" sx={{ textAlign: 'center' }}>
-          <Typography variant="h5" sx={{ fontWeight: 800, mb: 1 }}>
-            No te pierdas nada
+          <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: '#282d35', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
+            <CardGiftcardIcon sx={{ fontSize: 22 }} />
+          </Box>
+          <Typography variant="h5" sx={{ fontWeight: 800, mb: 0.5 }}>
+            {config.home.newsletter.title}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Suscríbete y recibe 10% OFF en tu primera compra + acceso anticipado a lanzamientos.
+            {config.home.newsletter.description}
           </Typography>
           <Box
             component="form"
             onSubmit={(e) => e.preventDefault()}
             sx={{
               display: 'flex',
-              maxWidth: 380,
+              maxWidth: 400,
               mx: 'auto',
-              height: 40,
+              height: 44,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+              borderRadius: '50px',
+              overflow: 'hidden',
+              border: '1px solid #e8e8e8',
             }}
           >
             <InputBase
               placeholder="tu@email.com"
               sx={{
                 flex: 1,
-                px: 2,
-                fontSize: '0.85rem',
-                border: '1px solid #e0e0e0',
-                borderRight: 'none',
-                borderRadius: '50px 0 0 50px',
+                px: 2.5,
+                fontSize: '0.88rem',
                 bgcolor: '#fff',
               }}
             />
@@ -344,14 +341,15 @@ export default function Home() {
               color="primary"
               size="small"
               sx={{
-                borderRadius: '0 50px 50px 0',
-                px: 2.5,
+                borderRadius: 0,
+                px: 3,
                 whiteSpace: 'nowrap',
-                fontSize: '0.78rem',
+                fontSize: '0.8rem',
                 boxShadow: 'none',
+                fontWeight: 600,
               }}
             >
-              Suscribirse
+              {config.home.newsletter.buttonText}
             </Button>
           </Box>
         </Container>

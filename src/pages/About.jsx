@@ -2,8 +2,8 @@ import { Container, Typography, Paper } from '@mui/material'
 
 export default function About() {
   return (
-    <Container maxWidth="md" sx={{ py: 6 }}>
-      <Typography variant="h4" component="h1" gutterBottom fontWeight={700}>
+    <Container maxWidth="md" sx={{ py: 3 }}>
+      <Typography variant="h5" fontWeight={800} sx={{ mb: 3 }}>
         Quiénes Somos
       </Typography>
       <Paper sx={{ p: 4 }}>

@@ -1,9 +1,24 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Container, Typography, Button, Box, Alert, Divider, LinearProgress, TextField } from '@mui/material'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { Container, Typography, Button, Box, Alert, Divider, LinearProgress, TextField, InputAdornment, CircularProgress } from '@mui/material'
+import ConfirmationNumberOutlinedIcon from '@mui/icons-material/ConfirmationNumberOutlined'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 import { api } from '../services/api'
+import { BtnAccent } from '../components/ui/Buttons'
+import { PageHeader, PageSection } from '../components/ui'
+
+const checkoutSchema = z.object({
+  nombre: z.string().min(1, 'El nombre es requerido'),
+  direccion: z.string().min(1, 'La dirección es requerida'),
+  ciudad: z.string().min(1, 'La ciudad es requerida'),
+  estado: z.string().min(1, 'El estado es requerido'),
+  cp: z.string().min(1, 'El código postal es requerido').regex(/^\d{5}$/, 'Código postal inválido (5 dígitos)'),
+  telefono: z.string().min(1, 'El teléfono es requerido').refine(v => v.replace(/\D/g, '').length >= 10, 'Teléfono inválido (mín. 10 dígitos)'),
+})
 
 export default function Checkout() {
   const { user } = useAuth()
@@ -11,14 +26,21 @@ export default function Checkout() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [formErrors, setFormErrors] = useState({})
-  const [form, setForm] = useState({
-    nombre: user?.nombre || '',
-    direccion: '',
-    ciudad: '',
-    estado: '',
-    cp: '',
-    telefono: '',
+  const [couponCode, setCouponCode] = useState('')
+  const [coupon, setCoupon] = useState(null)
+  const [couponError, setCouponError] = useState('')
+  const [couponLoading, setCouponLoading] = useState(false)
+
+  const { register, handleSubmit, formState: { errors: formErrors } } = useForm({
+    resolver: zodResolver(checkoutSchema),
+    defaultValues: {
+      nombre: user?.nombre || '',
+      direccion: '',
+      ciudad: '',
+      estado: '',
+      cp: '',
+      telefono: '',
+    },
   })
 
   if (items.length === 0) {
@@ -26,39 +48,18 @@ export default function Checkout() {
     return null
   }
 
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    setForm(prev => ({ ...prev, [name]: value }))
-    if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: '' }))
-  }
-
-  const validate = () => {
-    const errors = {}
-    if (!form.nombre.trim()) errors.nombre = 'El nombre es requerido'
-    if (!form.direccion.trim()) errors.direccion = 'La dirección es requerida'
-    if (!form.ciudad.trim()) errors.ciudad = 'La ciudad es requerida'
-    if (!form.estado.trim()) errors.estado = 'El estado es requerido'
-    if (!form.cp.trim()) errors.cp = 'El código postal es requerido'
-    else if (!/^\d{5}$/.test(form.cp.trim())) errors.cp = 'Código postal inválido (5 dígitos)'
-    if (!form.telefono.trim()) errors.telefono = 'El teléfono es requerido'
-    else if (form.telefono.replace(/\D/g, '').length < 10) errors.telefono = 'Teléfono inválido (mín. 10 dígitos)'
-    setFormErrors(errors)
-    return Object.keys(errors).length === 0
-  }
-
-  const handleOrder = async () => {
+  const handleOrder = async (formData) => {
     if (!user) {
       navigate('/login')
       return
     }
-
-    if (!validate()) return
 
     setLoading(true)
     setError('')
 
     try {
       const data = await api.createOrder(items)
+      if (coupon) await api.applyCoupon(coupon.id).catch(() => {})
       clearCart()
       navigate(`/order-success/${data.order.id}`)
     } catch (err) {
@@ -68,9 +69,29 @@ export default function Checkout() {
     }
   }
 
+  const handleCoupon = async () => {
+    if (!couponCode.trim()) return
+    setCouponLoading(true)
+    setCouponError('')
+    try {
+      const data = await api.validateCoupon(couponCode, total)
+      setCoupon(data.coupon)
+    } catch (err) {
+      setCouponError(err.message || 'Cupón no válido')
+      setCoupon(null)
+    } finally {
+      setCouponLoading(false)
+    }
+  }
+
+  const discount = coupon?.discount || 0
+  const freeShipping = coupon?.freeShipping || false
+  const finalShipping = freeShipping ? 0 : shipping
+  const finalTotal = total - discount + finalShipping
+
   return (
     <Container maxWidth="lg" sx={{ py: 3 }}>
-      <Typography variant="h5" fontWeight={800} sx={{ mb: 3 }}>Checkout</Typography>
+      <PageHeader title="Checkout" />
 
       {loading && <LinearProgress sx={{ mb: 2, borderRadius: 2 }} />}
 
@@ -82,130 +103,150 @@ export default function Checkout() {
 
       {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{error}</Alert>}
 
-      <Box sx={{ display: 'flex', gap: 4, flexDirection: { xs: 'column', md: 'row' } }}>
+      <Box component="form" onSubmit={handleSubmit(handleOrder)} sx={{ display: 'flex', gap: 4, flexDirection: { xs: 'column', md: 'row' } }}>
         {/* Left - Shipping Form + Items */}
         <Box sx={{ flex: 1 }}>
           {/* Shipping address */}
-          <Box sx={{ bgcolor: '#fff', border: '1px solid #f0f0f0', borderRadius: 2, p: 2.5, mb: 2.5 }}>
-            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.72rem', color: '#6b7280' }}>
-              Dirección de envío
-            </Typography>
+          <PageSection title="Dirección de envío" sx={{ mb: 2.5 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <TextField
                 label="Nombre completo"
-                name="nombre"
                 size="small"
                 fullWidth
-                value={form.nombre}
-                onChange={handleChange}
+                {...register('nombre')}
                 error={!!formErrors.nombre}
-                helperText={formErrors.nombre}
+                helperText={formErrors.nombre?.message}
               />
               <TextField
                 label="Dirección (calle y número)"
-                name="direccion"
                 size="small"
                 fullWidth
-                value={form.direccion}
-                onChange={handleChange}
+                {...register('direccion')}
                 error={!!formErrors.direccion}
-                helperText={formErrors.direccion}
+                helperText={formErrors.direccion?.message}
               />
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <TextField
                   label="Ciudad"
-                  name="ciudad"
                   size="small"
                   fullWidth
-                  value={form.ciudad}
-                  onChange={handleChange}
+                  {...register('ciudad')}
                   error={!!formErrors.ciudad}
-                  helperText={formErrors.ciudad}
+                  helperText={formErrors.ciudad?.message}
                 />
                 <TextField
                   label="Estado"
-                  name="estado"
                   size="small"
                   fullWidth
-                  value={form.estado}
-                  onChange={handleChange}
+                  {...register('estado')}
                   error={!!formErrors.estado}
-                  helperText={formErrors.estado}
+                  helperText={formErrors.estado?.message}
                 />
               </Box>
               <Box sx={{ display: 'flex', gap: 2 }}>
                 <TextField
                   label="Código postal"
-                  name="cp"
                   size="small"
                   fullWidth
-                  value={form.cp}
-                  onChange={handleChange}
+                  {...register('cp')}
                   error={!!formErrors.cp}
-                  helperText={formErrors.cp}
+                  helperText={formErrors.cp?.message}
                   inputProps={{ maxLength: 5 }}
                 />
                 <TextField
                   label="Teléfono"
-                  name="telefono"
                   size="small"
                   fullWidth
-                  value={form.telefono}
-                  onChange={handleChange}
+                  {...register('telefono')}
                   error={!!formErrors.telefono}
-                  helperText={formErrors.telefono}
+                  helperText={formErrors.telefono?.message}
                 />
               </Box>
             </Box>
-          </Box>
+          </PageSection>
 
           {/* Order items */}
-          <Box sx={{ bgcolor: '#fff', border: '1px solid #f0f0f0', borderRadius: 2, p: 2.5 }}>
-            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.72rem', color: '#6b7280' }}>
-              Tu orden
-            </Typography>
+          <PageSection title="Tu orden">
             <Divider sx={{ mb: 1.5 }} />
             {items.map(item => (
-              <Box key={item.id} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.8 }}>
+              <Box key={item.cartKey || item.id} sx={{ display: 'flex', justifyContent: 'space-between', py: 0.8 }}>
                 <Typography variant="body2">
-                  {item.nombre} <Typography component="span" color="text.secondary" variant="caption">x{item.qty}</Typography>
+                  {item.title || item.nombre} {item.variantLabel && <Typography component="span" color="text.secondary" variant="caption">({item.variantLabel})</Typography>} <Typography component="span" color="text.secondary" variant="caption">x{item.qty}</Typography>
                 </Typography>
-                <Typography variant="body2" fontWeight={600}>${(item.precio * item.qty).toLocaleString('es-MX')}</Typography>
+                <Typography variant="body2" fontWeight={600}>${((item.price || item.precio || 0) * item.qty).toLocaleString('es-MX')}</Typography>
               </Box>
             ))}
-          </Box>
+          </PageSection>
         </Box>
 
         {/* Right - Summary */}
-        <Box sx={{ width: { xs: '100%', md: 280 }, flexShrink: 0 }}>
-          <Box sx={{ bgcolor: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 2, p: 2.5, position: 'sticky', top: 100 }}>
+        <Box sx={{ width: { xs: '100%', md: 300 }, flexShrink: 0 }}>
+          <Box sx={{ bgcolor: 'grey.50', border: '1px solid', borderColor: 'grey.200', borderRadius: 2, p: 2.5, position: 'sticky', top: 100 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
               <Typography variant="body2">Subtotal</Typography>
               <Typography variant="body2">${total.toLocaleString('es-MX')}</Typography>
             </Box>
+            {discount > 0 && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                <Typography variant="body2" color="success.main">Descuento ({coupon.code})</Typography>
+                <Typography variant="body2" color="success.main">-${discount.toLocaleString('es-MX')}</Typography>
+              </Box>
+            )}
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
               <Typography variant="body2">Envío</Typography>
-              <Typography variant="body2">{shipping === 0 ? 'Gratis' : `$${shipping.toLocaleString('es-MX')}`}</Typography>
+              <Typography variant="body2">{freeShipping ? <b style={{ color: '#059669' }}>Gratis</b> : finalShipping === 0 ? 'Gratis' : `$${finalShipping.toLocaleString('es-MX')}`}</Typography>
             </Box>
-            {total < 799 && (
+            {total < 799 && !freeShipping && (
               <Alert severity="info" sx={{ my: 1, py: 0, fontSize: '0.75rem', borderRadius: 1.5 }}>
                 ¡Agrega ${(799 - total).toLocaleString('es-MX')} más para envío gratis!
               </Alert>
             )}
+
+            {/* Coupon input */}
+            <Box sx={{ mt: 2, mb: 2 }}>
+              <TextField
+                placeholder="Código de descuento"
+                size="small"
+                fullWidth
+                value={couponCode}
+                onChange={e => { setCouponCode(e.target.value); setCouponError('') }}
+                onKeyDown={e => e.key === 'Enter' && handleCoupon()}
+                error={!!couponError}
+                helperText={couponError}
+                disabled={!!coupon}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start"><ConfirmationNumberOutlinedIcon sx={{ fontSize: 18, color: 'text.disabled' }} /></InputAdornment>,
+                  endAdornment: !coupon && (
+                    <InputAdornment position="end">
+                      <Button size="small" onClick={handleCoupon} disabled={couponLoading || !couponCode.trim()} sx={{ minWidth: 'auto', fontWeight: 600, fontSize: '0.75rem' }}>
+                        {couponLoading ? <CircularProgress size={16} /> : 'Aplicar'}
+                      </Button>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              {coupon && (
+                <Box sx={{ mt: 0.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="caption" color="success.main" fontWeight={600}>
+                    {coupon.type === 'percent' ? `${coupon.value}% descuento` : coupon.type === 'free_shipping' ? 'Envío gratis' : `$${coupon.value} descuento`}
+                  </Typography>
+                  <Button size="small" onClick={() => { setCoupon(null); setCouponCode('') }} sx={{ minWidth: 'auto', fontSize: '0.7rem', color: 'text.secondary' }}>Quitar</Button>
+                </Box>
+              )}
+            </Box>
+
             <Divider sx={{ my: 2 }} />
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
               <Typography variant="body1" fontWeight={700}>Total</Typography>
-              <Typography variant="body1" fontWeight={700}>${(total + shipping).toLocaleString('es-MX')}</Typography>
+              <Typography variant="body1" fontWeight={700}>${finalTotal.toLocaleString('es-MX')}</Typography>
             </Box>
-            <Button
-              variant="contained"
-              color="secondary"
+            <BtnAccent
               fullWidth
-              onClick={handleOrder}
+              type="submit"
               disabled={loading || !user}
             >
               {loading ? 'Procesando...' : 'Confirmar orden'}
-            </Button>
+            </BtnAccent>
           </Box>
         </Box>
       </Box>

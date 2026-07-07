@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Container, Typography, Box, Chip, Skeleton, Select, MenuItem, Slider } from '@mui/material'
 import TuneIcon from '@mui/icons-material/Tune'
 import { api } from '../services/api'
 import ProductCard from '../components/ProductCard'
+import { PageHeader } from '../components/ui'
 
 const GENRES = ['Pop', 'R&B', 'Rock', 'Hip-Hop', 'Electrónica', 'Alternativo']
 const SORT_OPTIONS = [
@@ -16,6 +17,7 @@ const SORT_OPTIONS = [
 
 export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const location = useLocation()
   const [priceRange, setPriceRange] = useState([0, 2000])
   const [showFilters, setShowFilters] = useState(false)
 
@@ -29,27 +31,43 @@ export default function Search() {
     queryKey: ['products', 'search', q, t],
     queryFn: () => q
       ? api.searchProducts(q)
-      : api.getProducts({ tipo: t || undefined, limit: 50 }),
+      : api.getProducts({ type: t || undefined, limit: 50 }),
   })
 
   const products = useMemo(() => {
     let items = data?.products || []
 
-    // Genre filter
-    if (genre) {
-      items = items.filter(p => p.genero?.toLowerCase() === genre.toLowerCase())
+    // Type filter: show products that have at least one variant of this type
+    if (t) {
+      items = items.filter(p =>
+        p.variants?.some(v => (v.type || '').toUpperCase() === t.toUpperCase()) ||
+        (p.type || '').toUpperCase() === t.toUpperCase()
+      )
     }
 
-    // Price filter
-    items = items.filter(p => p.precio >= priceRange[0] && p.precio <= priceRange[1])
+    // Genre filter
+    if (genre) {
+      items = items.filter(p => (p.genre || '').toLowerCase() === genre.toLowerCase())
+    }
+
+    // Price filter (use cheapest variant price)
+    items = items.filter(p => {
+      const price = p.variants?.length
+        ? Math.min(...p.variants.map(v => v.price_final).filter(Boolean))
+        : (p.price_final || 0)
+      return price >= priceRange[0] && price <= priceRange[1]
+    })
 
     // Sort
-    if (sort === 'price-asc') items = [...items].sort((a, b) => a.precio - b.precio)
-    else if (sort === 'price-desc') items = [...items].sort((a, b) => b.precio - a.precio)
-    else if (sort === 'name') items = [...items].sort((a, b) => a.nombre.localeCompare(b.nombre))
+    const getPrice = (p) => p.variants?.length
+      ? Math.min(...p.variants.map(v => v.price_final).filter(Boolean))
+      : (p.price_final || 0)
+    if (sort === 'price-asc') items = [...items].sort((a, b) => getPrice(a) - getPrice(b))
+    else if (sort === 'price-desc') items = [...items].sort((a, b) => getPrice(b) - getPrice(a))
+    else if (sort === 'name') items = [...items].sort((a, b) => (a.title || '').localeCompare(b.title || ''))
 
     return items
-  }, [data, genre, priceRange, sort])
+  }, [data, genre, priceRange, sort, t])
 
   const handleFilterTipo = (tipo) => {
     const params = {}
@@ -81,11 +99,10 @@ export default function Search() {
   return (
     <Container maxWidth="lg" sx={{ py: 3 }}>
       {/* Page title */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 800 }}>
-          {q ? `Resultados para "${q}"` : t ? (t === 'LP' ? 'LPs' : 'CDs') : 'Catálogo'}
-        </Typography>
-      </Box>
+      <PageHeader
+        title={q ? `Resultados para "${q}"` : t ? (t === 'LP' ? 'LPs' : 'CDs') : 'Catálogo'}
+        subtitle={!isLoading ? `${products.length} ${products.length === 1 ? 'producto' : 'productos'}` : undefined}
+      />
 
       {/* Format filters + sort */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, flexWrap: 'wrap' }}>
@@ -227,7 +244,7 @@ export default function Search() {
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
           {products.map(product => (
             <Box key={product.id} sx={{ width: { xs: 'calc(50% - 12px)', sm: 'calc(33.33% - 16px)', md: 'calc(25% - 18px)' } }}>
-              <ProductCard product={product} />
+              <ProductCard product={product} linkState={{ from: location.pathname + location.search, fromLabel: 'Catálogo' }} />
             </Box>
           ))}
         </Box>

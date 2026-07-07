@@ -13,8 +13,8 @@ export default function Contact() {
   }
 
   return (
-    <Container maxWidth="sm" sx={{ py: 6 }}>
-      <Typography variant="h4" component="h1" gutterBottom fontWeight={700}>
+    <Container maxWidth="sm" sx={{ py: 3 }}>
+      <Typography variant="h5" fontWeight={800} sx={{ mb: 3 }}>
         Contacto
       </Typography>
 

@@ -2,15 +2,17 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import {
-  Dialog, DialogContent, TextField, Button, Typography, Alert, Box,
+  Dialog, DialogContent, TextField, Typography, Alert, Box,
   InputAdornment, IconButton
 } from '@mui/material'
 import { Visibility, VisibilityOff, Close } from '@mui/icons-material'
 import { useAuth } from '../context/AuthContext'
 import { useNotification } from '../context/NotificationContext'
+import { BtnAuth } from './ui/Buttons'
+
 
 export default function LoginModal() {
-  const { login, loginModalOpen, closeLoginModal } = useAuth()
+  const { login, loginModalOpen, closeLoginModal, openRegisterModal } = useAuth()
   const { notify } = useNotification()
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -19,10 +21,17 @@ export default function LoginModal() {
   const onSubmit = async (data) => {
     setError('')
     try {
-      await login(data)
+      const { user: loggedUser } = await login(data)
       reset()
       closeLoginModal()
-      notify('Has iniciado sesión correctamente')
+      const name = loggedUser?.nombre?.split(' ')[0] || ''
+      const greetings = [
+        `¡Qué onda, ${name}! 🤘`,
+        `¡${name} está en el edificio! 🎸`,
+        `Welcome back, ${name} 🎶`,
+        `¡Arriba ${name}! Ya estás dentro 🔥`,
+      ]
+      notify(greetings[Math.floor(Math.random() * greetings.length)])
     } catch (err) {
       setError(err.error || err.message || 'Error al iniciar sesión')
     }
@@ -49,17 +58,17 @@ export default function LoginModal() {
         <IconButton
           onClick={handleClose}
           size="small"
-          sx={{ position: 'absolute', top: 12, right: 12, color: '#999' }}
+          sx={{ position: 'absolute', top: 12, right: 12, color: 'text.disabled' }}
         >
           <Close fontSize="small" />
         </IconButton>
 
         {/* Header */}
         <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, color: '#282d35' }}>
+          <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>
             Iniciar sesión
           </Typography>
-          <Typography variant="body2" sx={{ color: '#6b7280', mt: 0.5 }}>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
             Ingresa a tu cuenta BandUp
           </Typography>
         </Box>
@@ -78,7 +87,7 @@ export default function LoginModal() {
             {...register('username', { required: 'El usuario es requerido' })}
             error={!!errors.username}
             helperText={errors.username?.message}
-            autoComplete="username"
+            autoComplete="off"
           />
           <TextField
             label="Contraseña"
@@ -88,7 +97,7 @@ export default function LoginModal() {
             {...register('password', { required: 'La contraseña es requerida' })}
             error={!!errors.password}
             helperText={errors.password?.message}
-            autoComplete="current-password"
+            autoComplete="off"
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -99,33 +108,26 @@ export default function LoginModal() {
               ),
             }}
           />
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            disabled={isSubmitting}
-            fullWidth
-            sx={{ mt: 0.5 }}
-          >
+          <BtnAuth type="submit" disabled={isSubmitting} sx={{ mt: 0.5 }}>
             {isSubmitting ? 'Entrando...' : 'Iniciar sesión'}
-          </Button>
+          </BtnAuth>
 
-          <Typography sx={{ textAlign: 'right', mt: -1 }}>
-            <Link to="/forgot-password" onClick={handleClose} style={{ color: '#6b7280', fontSize: '0.78rem', textDecoration: 'none' }}>
+          <Typography sx={{ textAlign: 'center', mt: -1 }}>
+            <Link to="/forgot-password" onClick={handleClose} style={{ color: 'inherit', fontSize: '0.78rem', textDecoration: 'none', opacity: 0.6 }}>
               ¿Olvidaste tu contraseña?
             </Link>
           </Typography>
         </Box>
 
-        <Typography sx={{ color: '#6b7280', textAlign: 'center', mt: 3, fontSize: '0.85rem' }}>
+        <Typography sx={{ color: 'text.secondary', textAlign: 'center', mt: 3, fontSize: '0.85rem' }}>
           ¿No tienes cuenta?{' '}
-          <Link to="/register" onClick={handleClose} style={{ color: '#282d35', fontWeight: 600, textDecoration: 'none' }}>
+          <Box component="span" onClick={() => { handleClose(); openRegisterModal() }} sx={{ fontWeight: 600, cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}>
             Regístrate
-          </Link>
+          </Box>
         </Typography>
 
-        <Box sx={{ mt: 2, p: 1.5, borderRadius: 2, bgcolor: '#f5f5f5', textAlign: 'center' }}>
-          <Typography variant="caption" sx={{ color: '#6b7280' }}>
+        <Box sx={{ mt: 2, p: 1.5, borderRadius: 2, bgcolor: 'grey.100', textAlign: 'center' }}>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
             Demo: <strong>demo / demo123</strong> &nbsp;|&nbsp; Admin: <strong>admin / admin123</strong>
           </Typography>
         </Box>

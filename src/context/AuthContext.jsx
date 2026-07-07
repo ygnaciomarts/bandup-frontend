@@ -1,22 +1,38 @@
 import { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
-import { api } from '../services/api'
+import { useQueryClient } from '@tanstack/react-query'
+import { api, getToken, setToken, removeToken, onForceLogout } from '../services/api'
 import { useNotification } from './NotificationContext'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const { notify } = useNotification()
+  const queryClient = useQueryClient()
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [loginModalOpen, setLoginModalOpen] = useState(false)
   const [registerModalOpen, setRegisterModalOpen] = useState(false)
 
+  // Listen for forced logouts (401 from any request)
   useEffect(() => {
-    const token = localStorage.getItem('token')
+    return onForceLogout(() => {
+      setUser(null)
+      queryClient.clear()
+      notify('Tu sesión ha expirado. Inicia sesión de nuevo.', 'warning')
+    })
+  }, [notify, queryClient])
+
+  useEffect(() => {
+    const token = getToken()
     if (token) {
       api.getMe()
         .then(setUser)
-        .catch(() => localStorage.removeItem('token'))
+        .catch((err) => {
+          if (err.status === 401) {
+            removeToken()
+            setUser(null)
+          }
+        })
         .finally(() => setLoading(false))
     } else {
       setLoading(false)
@@ -25,26 +41,26 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (credentials) => {
     const data = await api.login(credentials)
-    localStorage.setItem('token', data.token)
-    localStorage.setItem('mockEmail', credentials.email || credentials.username)
+    setToken(data.token)
     setUser(data.user)
     return data
   }, [])
 
   const register = useCallback(async (userData) => {
     const data = await api.register(userData)
-    localStorage.setItem('token', data.token)
-    localStorage.setItem('mockEmail', userData.email)
+    setToken(data.token)
     setUser(data.user)
     return data
   }, [])
 
   const logout = useCallback(() => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('mockEmail')
+    removeToken()
     setUser(null)
+    queryClient.clear()
+    localStorage.removeItem('cart')
+    window.dispatchEvent(new Event('cart-cleared'))
     notify('Tu sesión ha sido cerrada correctamente', 'info')
-  }, [notify])
+  }, [notify, queryClient])
 
   const openLoginModal = useCallback(() => setLoginModalOpen(true), [])
   const closeLoginModal = useCallback(() => setLoginModalOpen(false), [])

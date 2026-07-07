@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
-  AppBar, Toolbar, Box, IconButton, Badge, InputBase, Button, Container, Typography, Drawer, List, ListItem, ListItemText, ListItemIcon, Divider, Menu, MenuItem as MuiMenuItem, Avatar
+  AppBar, Toolbar, Box, IconButton, Badge, InputBase, Button, Container, Typography, Drawer, List, ListItem, ListItemText, ListItemIcon, Divider, Menu, MenuItem as MuiMenuItem, Avatar, Paper, CircularProgress
 } from '@mui/material'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import './Header.css'
@@ -14,19 +14,50 @@ import CloseIcon from '@mui/icons-material/Close'
 import LogoutIcon from '@mui/icons-material/Logout'
 import LoginIcon from '@mui/icons-material/Login'
 import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined'
+import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
+import { api } from '../services/api'
+import { useSiteConfig } from '../context/SiteConfigContext'
 
-const NAV_LINKS = [
-  { label: 'INICIO', to: '/' },
-  { label: 'NOVEDADES', to: '/search?filter=new' },
-  { label: 'OFERTAS', to: '/search?filter=sale' },
-  { label: 'CDs', to: '/search?tipo=CD' },
-  { label: 'LPs', to: '/search?tipo=LP' },
-  { label: 'CONTACTO', to: '/contacto' },
-]
+function AnnouncementTicker() {
+  const config = useSiteConfig()
+  const { data: announcements } = useQuery({
+    queryKey: ['announcements'],
+    queryFn: () => api.getAnnouncements(),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const items = announcements?.length > 0
+    ? announcements
+    : config.fallbackAnnouncements.map(msg => ({ message: msg, link_url: null }))
+
+  if (items.length === 0) return null
+
+  return (
+    <Box sx={{ bgcolor: config.colors.primary, color: '#fff', py: 0.6, overflow: 'hidden', whiteSpace: 'nowrap' }}>
+      <Box sx={{ display: 'inline-block', animation: 'ticker 70s linear infinite' }}>
+        {[...Array(6)].flatMap((_, r) =>
+          items.map((item, i) => (
+            item.link_url ? (
+              <Typography key={`${r}-${i}`} component="a" href={item.link_url} variant="caption"
+                sx={{ mx: 8, fontWeight: 600, letterSpacing: 0.5, fontSize: '0.68rem', color: '#fff', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+                {item.message}
+              </Typography>
+            ) : (
+              <Typography key={`${r}-${i}`} component="span" variant="caption" sx={{ mx: 8, fontWeight: 600, letterSpacing: 0.5, fontSize: '0.68rem' }}>
+                {item.message}
+              </Typography>
+            )
+          ))
+        )}
+      </Box>
+    </Box>
+  )
+}
 
 export default function Header() {
+  const config = useSiteConfig()
   const { user, logout, openLoginModal } = useAuth()
   const { totalItems } = useCart()
   const [searchQuery, setSearchQuery] = useState('')
@@ -34,6 +65,10 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false)
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false)
   const [userMenuAnchor, setUserMenuAnchor] = useState(null)
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false)
+  const debounceRef = useRef(null)
   const navigate = useNavigate()
   const headerRef = useRef(null)
 
@@ -69,23 +104,40 @@ export default function Header() {
 
   const clearSearch = () => {
     setSearchQuery('')
+    setSuggestions([])
+    setShowSuggestions(false)
     navigate('/search')
+  }
+
+  const handleSearchInput = (val) => {
+    setSearchQuery(val)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (val.trim().length < 2) {
+      setSuggestions([])
+      setShowSuggestions(false)
+      return
+    }
+    debounceRef.current = setTimeout(async () => {
+      setSuggestionsLoading(true)
+      try {
+        const data = await api.searchAutocomplete(val)
+        setSuggestions(data.results || [])
+        setShowSuggestions(true)
+      } catch { setSuggestions([]) }
+      setSuggestionsLoading(false)
+    }, 300)
+  }
+
+  const selectSuggestion = (item) => {
+    setShowSuggestions(false)
+    setSearchQuery('')
+    navigate(`/product/${item.slug || item.id}`, { state: { from: '/search', fromLabel: 'Búsqueda' } })
   }
 
   return (
     <>
       {/* Promo ticker - scrolls away */}
-      <Box sx={{ bgcolor: '#282d35', color: '#fff', py: 0.6, overflow: 'hidden', whiteSpace: 'nowrap' }}>
-        <Box sx={{ display: 'inline-block', animation: 'ticker 70s linear infinite' }}>
-          {[...Array(6)].flatMap((_, r) =>
-            ['ENVÍO GRATIS EN ÓRDENES +$799', '20% OFF EN "CAMBIOS DE LUNA"', '10% OFF CON TU PRIMER NEWSLETTER', 'ARTÍCULOS DE PREVENTA EN OFERTA'].map((msg, i) => (
-              <Typography key={`${r}-${i}`} component="span" variant="caption" sx={{ mx: 8, fontWeight: 600, letterSpacing: 0.5, fontSize: '0.68rem' }}>
-                {msg}
-              </Typography>
-            ))
-          )}
-        </Box>
-      </Box>
+      <AnnouncementTicker />
 
       {/* Navbar - sticky */}
       <header ref={headerRef} style={{ position: 'sticky', top: 0, zIndex: 1100 }}>
@@ -97,6 +149,7 @@ export default function Header() {
               {/* Mobile Menu */}
               <IconButton
                 onClick={() => setDrawerOpen(true)}
+                aria-label="Abrir menú"
                 sx={{ display: { lg: 'none' }, color: '#282d35' }}
               >
                 <MenuIcon />
@@ -104,12 +157,12 @@ export default function Header() {
 
               {/* Logo */}
               <Box component={Link} to="/" sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-                <img src="/img/BandUp.svg" alt="BandUp" style={{ height: 42 }} />
+                <img src={config.logo} alt={config.siteName} style={{ height: 42 }} />
               </Box>
 
               {/* Nav links - desktop */}
               <Box sx={{ display: { xs: 'none', lg: 'flex' }, alignItems: 'center', gap: 0.3 }}>
-                {NAV_LINKS.map((link) => (
+                {config.navLinks.map((link) => (
                   <Button
                     key={link.label}
                     component={Link}
@@ -137,6 +190,7 @@ export default function Header() {
                 component="form"
                 onSubmit={handleSearch}
                 sx={{
+                  position: 'relative',
                   width: 280,
                   display: { xs: 'none', sm: 'flex' },
                   alignItems: 'center',
@@ -152,15 +206,51 @@ export default function Header() {
                 <InputBase
                   placeholder="Buscar LPs, CDs, artistas..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => handleSearchInput(e.target.value)}
+                  onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  inputProps={{ 'aria-label': 'Buscar productos' }}
                   sx={{ flex: 1, fontSize: '0.8rem', py: 0.5 }}
                 />
                 {searchQuery ? (
-                  <IconButton onClick={clearSearch} size="small" sx={{ p: 0.3 }}>
+                  <IconButton onClick={clearSearch} size="small" aria-label="Limpiar búsqueda" sx={{ p: 0.3 }}>
                     <CloseIcon sx={{ fontSize: '0.9rem', color: '#999' }} />
                   </IconButton>
                 ) : (
                   <SearchIcon sx={{ color: '#999', fontSize: '1.2rem' }} />
+                )}
+
+                {/* Autocomplete dropdown */}
+                {showSuggestions && (
+                  <Paper
+                    elevation={3}
+                    sx={{
+                      position: 'absolute', top: '100%', left: 0, right: 0, mt: 0.5,
+                      borderRadius: 2, overflow: 'hidden', zIndex: 9999, maxHeight: 300, overflowY: 'auto',
+                    }}
+                  >
+                    {suggestionsLoading && <Box sx={{ p: 1.5, textAlign: 'center' }}><CircularProgress size={16} /></Box>}
+                    {suggestions.map(item => (
+                      <Box
+                        key={item.id}
+                        onMouseDown={() => selectSuggestion(item)}
+                        sx={{
+                          display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1,
+                          cursor: 'pointer', '&:hover': { bgcolor: 'grey.100' },
+                        }}
+                      >
+                        <Box sx={{ width: 36, height: 36, borderRadius: 1, overflow: 'hidden', bgcolor: 'grey.200', flexShrink: 0 }}>
+                          {item.coverImage && <img src={item.coverImage} alt={item.title || 'Producto'} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                        </Box>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant="body2" fontWeight={600} noWrap>{item.title}</Typography>
+                          <Typography variant="caption" color="text.secondary">{item.artist} · {item.type}</Typography>
+                        </Box>
+                        <Typography variant="caption" fontWeight={700}>${item.price_final?.toLocaleString('es-MX')}</Typography>
+                      </Box>
+                    ))}
+
+                  </Paper>
                 )}
               </Box>
 
@@ -170,6 +260,7 @@ export default function Header() {
                 <IconButton
                   onClick={() => setMobileSearchOpen((v) => !v)}
                   size="small"
+                  aria-label="Buscar"
                   sx={{ display: { sm: 'none' }, color: '#282d35' }}
                 >
                   <SearchIcon fontSize="small" />
@@ -183,7 +274,7 @@ export default function Header() {
                       <Avatar
                         src={
                           user?.avatar_url
-                            ? `${import.meta.env.VITE_API_URL}${user.avatar_url}`
+                            ? user.avatar_url
                             : undefined
                         }
                         sx={{
@@ -198,6 +289,14 @@ export default function Header() {
                       </Avatar>
                       <KeyboardArrowDownIcon sx={{ fontSize: 18, color: '#6b7280' }} />
                     </Button>
+                    {/* Mobile: person icon opens same menu */}
+                    <IconButton
+                      onClick={(e) => setUserMenuAnchor(e.currentTarget)}
+                      size="small"
+                      sx={{ display: { xs: 'inline-flex', lg: 'none' }, color: '#282d35', '& svg': { fontSize: { xs: '1.2rem', lg: '1.4rem' } } }}
+                    >
+                      <PersonOutlineIcon />
+                    </IconButton>
                     <Menu
                       anchorEl={userMenuAnchor}
                       open={Boolean(userMenuAnchor)}
@@ -229,10 +328,10 @@ export default function Header() {
                     Entrar
                   </Button>
                 )}
-                <IconButton component={Link} to="/wishlist" size="small" sx={{ color: '#282d35', '& svg': { fontSize: { xs: '1.2rem', lg: '1.4rem' } } }}>
+                <IconButton component={Link} to="/wishlist" size="small" aria-label="Wishlist" sx={{ color: '#282d35', '& svg': { fontSize: { xs: '1.2rem', lg: '1.4rem' } } }}>
                   <FavoriteBorderIcon />
                 </IconButton>
-                <IconButton component={Link} to="/cart" size="small" sx={{ color: '#282d35', '& svg': { fontSize: { xs: '1.2rem', lg: '1.4rem' } } }}>
+                <IconButton component={Link} to="/cart" size="small" aria-label="Carrito" sx={{ color: '#282d35', '& svg': { fontSize: { xs: '1.2rem', lg: '1.4rem' } } }}>
                   <Badge
                     badgeContent={totalItems}
                     color="secondary"
@@ -277,7 +376,7 @@ export default function Header() {
                   autoFocus
                   placeholder="Buscar LPs, CDs..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => handleSearchInput(e.target.value)}
                   sx={{ flex: 1, fontSize: '0.85rem', py: 0.8 }}
                 />
               </Box>
@@ -290,7 +389,7 @@ export default function Header() {
           <Box sx={{ width: 300, display: 'flex', flexDirection: 'column', height: '100%' }}>
             {/* Drawer header */}
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2.5, py: 2.5 }}>
-              <img src="/img/BandUp.svg" alt="BandUp" style={{ height: 38 }} />
+              <img src={config.logo} alt={config.siteName} style={{ height: 38 }} />
               <IconButton onClick={() => setDrawerOpen(false)} size="small">
                 <CloseIcon fontSize="small" />
               </IconButton>
@@ -307,7 +406,7 @@ export default function Header() {
                 <InputBase
                   placeholder="Buscar LPs, CDs..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => handleSearchInput(e.target.value)}
                   fullWidth
                   sx={{ fontSize: '0.85rem', py: 0.8 }}
                 />
@@ -318,7 +417,7 @@ export default function Header() {
 
             {/* Nav links */}
             <List sx={{ px: 1.5, py: 1.5 }}>
-              {NAV_LINKS.map((link) => (
+              {config.navLinks.map((link) => (
                 <ListItem
                   key={link.label}
                   component={Link}

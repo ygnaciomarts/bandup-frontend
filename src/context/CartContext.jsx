@@ -14,23 +14,33 @@ export function CartProvider({ children }) {
     localStorage.setItem('cart', JSON.stringify(items))
   }, [items])
 
+  // Sync when logout clears cart from localStorage
+  useEffect(() => {
+    const handleClear = () => setItems([])
+    window.addEventListener('cart-cleared', handleClear)
+    return () => window.removeEventListener('cart-cleared', handleClear)
+  }, [])
+
   const addItem = (product) => {
+    const cartKey = product.variantId ? `${product.id}_${product.variantId}` : `${product.id}`
     setItems(prev => {
-      const existing = prev.find(item => item.id === product.id)
+      const existing = prev.find(item => item.cartKey === cartKey)
       if (existing) {
         return prev.map(item =>
-          item.id === product.id
+          item.cartKey === cartKey
             ? { ...item, qty: item.qty + (product.qty || 1) }
             : item
         )
       }
-      return [...prev, { ...product, qty: product.qty || 1 }]
+      return [...prev, { ...product, cartKey, qty: product.qty || 1 }]
     })
-    notify(`"${product.nombre}" se añadió a tu carrito`)
+    const name = product.title || product.nombre
+    const label = product.variantLabel ? ` (${product.variantLabel})` : ''
+    notify(`"${name}${label}" se añadió a tu carrito`)
   }
 
-  const removeItem = (id) => {
-    setItems(prev => prev.filter(item => item.id !== id))
+  const removeItem = (cartKey) => {
+    setItems(prev => prev.filter(item => item.cartKey !== cartKey))
     notify('El producto fue removido de tu carrito', 'info')
   }
 
@@ -39,15 +49,15 @@ export function CartProvider({ children }) {
     notify('Tu carrito ha sido vaciado', 'info')
   }
 
-  const updateQty = (id, qty) => {
+  const updateQty = (cartKey, qty) => {
     if (qty <= 0) {
-      removeItem(id)
+      removeItem(cartKey)
       return
     }
-    setItems(prev => prev.map(item => item.id === id ? { ...item, qty } : item))
+    setItems(prev => prev.map(item => item.cartKey === cartKey ? { ...item, qty } : item))
   }
 
-  const total = items.reduce((sum, item) => sum + item.precio * item.qty, 0)
+  const total = items.reduce((sum, item) => sum + (item.price || item.precio || 0) * item.qty, 0)
   const totalItems = items.reduce((sum, item) => sum + item.qty, 0)
   const shipping = total >= 799 ? 0 : Math.round(total * 0.07 * 100) / 100
 

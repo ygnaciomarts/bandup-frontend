@@ -1,5 +1,46 @@
 import { createTheme } from '@mui/material/styles'
 
+// =============================================
+// DESIGN TOKENS - Single source of truth
+// =============================================
+export const tokens = {
+  colors: {
+    primary: '#282d35',
+    primaryLight: '#3a4150',
+    primaryDark: '#1a1e24',
+    accent: '#dc454d',
+    accentLight: '#e8696f',
+    accentDark: '#b8363d',
+    success: '#22c55e',
+    warning: '#f59e0b',
+    error: '#dc2626',
+  },
+  grey: {
+    50: '#fafafa',
+    100: '#f5f5f5',
+    200: '#f0f0f0',
+    300: '#e5e5e5',
+    400: '#d4d4d4',
+    500: '#9ca3af',
+    600: '#6b7280',
+    700: '#4b5563',
+    800: '#374151',
+    900: '#1f2937',
+  },
+  radius: {
+    sm: 4,
+    md: 6,
+    lg: 8,
+    xl: 12,
+    pill: 50,
+  },
+  shadow: {
+    sm: '0 1px 3px rgba(0,0,0,0.06)',
+    md: '0 4px 12px rgba(0,0,0,0.06)',
+    lg: '0 8px 30px rgba(0,0,0,0.12)',
+  },
+}
+
 const theme = createTheme({
   breakpoints: {
     values: {
@@ -35,11 +76,17 @@ const theme = createTheme({
     background: {
       default: '#ffffff',
       paper: '#ffffff',
+      subtle: tokens.grey[50],
+      muted: tokens.grey[100],
+      surface: tokens.grey[200],
     },
     text: {
       primary: '#282d35',
       secondary: '#6b7280',
+      disabled: '#9ca3af',
+      hint: '#9ca3af',
     },
+    grey: tokens.grey,
     divider: '#e5e5e5',
   },
   typography: {
@@ -72,6 +119,7 @@ const theme = createTheme({
           fontWeight: 600,
           letterSpacing: '0.04em',
           textTransform: 'none',
+          overflow: 'hidden',
           transition: 'background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease',
           '&:active': { transform: 'scale(0.97)' },
         },
@@ -87,10 +135,14 @@ const theme = createTheme({
         },
         outlined: {
           borderWidth: '1.5px',
+          '&:hover': {
+            borderWidth: '1.5px',
+          },
+        },
+        outlinedPrimary: {
           borderColor: '#282d35',
           color: '#282d35',
           '&:hover': {
-            borderWidth: '1.5px',
             background: '#282d35',
             color: '#fff',
           },
@@ -99,9 +151,17 @@ const theme = createTheme({
           borderColor: '#dc454d',
           color: '#dc454d',
           '&:hover': {
-            borderWidth: '1.5px',
             background: '#dc454d',
             color: '#fff',
+          },
+        },
+        outlinedError: {
+          borderColor: '#fecaca',
+          color: '#dc2626',
+          '&:hover': {
+            borderColor: '#dc2626',
+            background: '#fef2f2',
+            color: '#dc2626',
           },
         },
         text: {
